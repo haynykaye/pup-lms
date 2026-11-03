@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-pup-maroon: #800000;
+  --color-pup-gold: #f2b705;
+}
