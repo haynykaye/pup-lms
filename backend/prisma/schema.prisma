@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  STUDENT
+  FACULTY
+  ADMIN
+}
+
+enum CourseCategory {
+  CCIS_CORE
+  GENERAL_EDUCATION
+  ELECTIVE
+}
+
+enum FileType {
+  PPT
+  PPTX
+  PDF
+}
+
+enum AssessmentType {
+  QUIZ
+  ACTIVITY
+  EXAM
+  PROJECT
+}
+
+model User {
+  id           String   @id @default(uuid())
+  schoolId     String   @unique
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+
+  taughtCourses Course[]       @relation("FacultyCourses")
+  enrollments   Enrollment[]
+  materials     Material[]
+  announcements Announcement[]
+  grades        Grade[]        @relation("StudentGrades")
+  gradesGiven   Grade[]        @relation("GradedBy")
+  auditLogs     AuditLog[]
+}
+
+model Course {
+  id        String         @id @default(uuid())
+  code      String         @unique
+  title     String
+  category  CourseCategory
+  facultyId String
+  faculty   User           @relation("FacultyCourses", fields: [facultyId], references: [id])
+  createdAt DateTime       @default(now())
+
+  enrollments   Enrollment[]
+  materials     Material[]
+  announcements Announcement[]
+  grades        Grade[]
+}
+
+model Enrollment {
+  id        String @id @default(uuid())
+  studentId String
+  courseId  String
+  section   String
+  student   User   @relation(fields: [studentId], references: [id])
+  course    Course @relation(fields: [courseId], references: [id])
+
+  @@unique([studentId, courseId])
+}
+
+model Material {
+  id                  String   @id @default(uuid())
+  courseId            String
+  moduleTitle         String
+  title               String
+  targetSection       String?
+  fileUrl             String
+  fileType            FileType
+  fileSizeBytes       Int
+  uploadDate          DateTime @default(now())
+  isVisibleToStudents Boolean  @default(true)
+  uploadedById        String
+  course              Course   @relation(fields: [courseId], references: [id])
+  uploadedBy          User     @relation(fields: [uploadedById], references: [id])
+}
+
+model Announcement {
+  id        String   @id @default(uuid())
+  courseId  String
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+  authorId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id])
+}
+
+model Grade {
+  id                 String         @id @default(uuid())
+  studentId          String
+  courseId           String
+  assessmentType     AssessmentType
+  score              Float
+  maxScore           Float
+  pupEquivalentGrade Float
+  gradedById         String
+  createdAt          DateTime       @default(now())
+  student            User           @relation("StudentGrades", fields: [studentId], references: [id])
+  gradedBy           User           @relation("GradedBy", fields: [gradedById], references: [id])
+  course             Course         @relation(fields: [courseId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String?
+  details    String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
